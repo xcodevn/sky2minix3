@@ -50,6 +50,8 @@ typedef struct device * device_t;
 
 struct mtx { /*TODO */ };
 
+struct callout { /*TODO */ };
+
 /* End of wrapper */
 
 /* Include all definitions from if_mskreg.h (FreeBSD) */
