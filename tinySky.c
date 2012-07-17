@@ -122,10 +122,6 @@ static void sky_watchdog_f(timer_t *tp) {
     /* TODO */
 }
 
-void sef_local_startup(void) {
-    /* TODO */
-}
-
 
 /*
  * Main file for driver
@@ -168,7 +164,7 @@ int main(int argc, char ** argv) {
                         check_int_events();
                     break ;
                 case TTY_PROC_NR:
-                    rtl8139_dump(&m);
+                    sky_dump(&m);
                     break;
                 default:
                     panic("illegal notify from: %d",
@@ -181,10 +177,10 @@ int main(int argc, char ** argv) {
 
         switch (m.m_type)
         {
-        case DL_WRITEV_S: rl_writev_s(&m, FALSE);   break;
-        case DL_READV_S: rl_readv_s(&m, FALSE);     break;
-        case DL_CONF:   rl_init(&m);            break;
-        case DL_GETSTAT_S: rl_getstat_s(&m);        break;
+        case DL_WRITEV_S: sky_writev_s(&m, FALSE);   break;
+        case DL_READV_S: sky_readv_s(&m, FALSE);     break;
+        case DL_CONF:   sky_init(&m);            break;
+        case DL_GETSTAT_S: sky_getstat_s(&m);        break;
         default:
             panic("illegal message: %d", m.m_type);
         }
