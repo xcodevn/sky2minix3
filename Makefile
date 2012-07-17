@@ -7,8 +7,8 @@ PROG	=	tinySky
 SRCS	=	tinySky.c io_port.c
 
 FILES		=	$(PROG).conf
-FILENAME	= 	$(PROG)
-FILEDIR		=	/etc/system.conf.d
+FILESNAME	= 	$(PROG)
+FILESDIR		=	/etc/system.conf.d
 
 DPADD	+= $(LIBNETDRIVER) $(LIBSYS) $(LIBTIMERS)
 LDADD	+= -lnetdriver -lsys -ltimers
