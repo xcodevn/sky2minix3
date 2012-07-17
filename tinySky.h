@@ -41,6 +41,7 @@
 
 /* Wrapper FreeBSD header file */
 #include "_bus_dma.h"
+#include "i386_bus.h"
 /* End of wrapper */
 
 /* Include all definitions from if_mskreg.h (FreeBSD) */
