@@ -35,6 +35,8 @@ static void sky_getstat_s(message *mp);
 static void sef_local_startup();
 static int sef_cb_init_fresh(int type, sef_init_info_t *UNUSED(info));
 static void sef_cb_signal_handler(int signo);
+static void mess_reply(req, reply_mess);
+static int sky_probe(sky_t *s, int skip);
 
 
 void sef_cb_lu_state_dump(int state) {
@@ -104,6 +106,7 @@ static void sky_getstat_s(message *mp) {
     /* TODO */
 }
 
+
 static void sky_init_pci()
 {
     sky_t *s;
@@ -114,8 +117,8 @@ static void sky_init_pci()
     /* Try to detect e1000's. */
     s = &sky_state;
     strcpy(s->name, "SKY02#0");
-    e->name[6] += sky_instance;
-    sky_probe(e, sky_instance);
+    s->name[6] += sky_instance;
+    sky_probe(s, sky_instance);
 }
 
 static int sky_probe(sky_t *s, int skip)
@@ -181,7 +184,7 @@ static int sky_probe(sky_t *s, int skip)
         dname = "Marwell Yukon Fast Ethernet Card";
     }
     SKY_DEBUG(1, ("%s: %s (%04x/%04x/%02x) at %s\n",
-             s->name, dname, vid, did, s->revision,
+             s->name, dname, vid, did, /*s->revision*/ 0,
              pci_slot_name(devind)));
 
     /* Reserve PCI resources found. */
@@ -196,8 +199,8 @@ static int sky_probe(sky_t *s, int skip)
         panic("failed to get PCI BAR (%d)", r);
     if (ioflag) panic("PCI BAR is not for memory");
 
-    e->regs  = vm_map_phys(SELF, (void *) base, size);
-    if (e->regs == (u8_t *) -1) {
+    s->regs  = vm_map_phys(SELF, (void *) base, size);
+    if (s->regs == (u8_t *) -1) {
         panic("failed to map hardware registers from PCI");
     }
 
@@ -286,6 +289,15 @@ static void sky_init(message *mp)
     reply_mess.DL_STAT = OK;
     *(ether_addr_t *) reply_mess.DL_HWADDR = s->address;
     mess_reply(mp, &reply_mess);
+}
+
+
+static void mess_reply(req, reply_mess)
+message *req;
+message *reply_mess;
+{
+    if (send(req->m_source, reply_mess) != OK)
+        panic("unable to mess_reply");
 }
 
 static void sky_readv_s(const message *mp, int from_int) {
