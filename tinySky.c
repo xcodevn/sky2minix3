@@ -105,7 +105,7 @@ static void sky_writev_s(const message *mp, int from_int) {
     /* TODO */
 }
 
-static void sky_dump(message *m);           /* pointer to request message */
+static void sky_dump(message *m)           /* pointer to request message */
 {
     /* TODO */
 }
