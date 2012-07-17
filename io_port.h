@@ -1,6 +1,14 @@
 #ifndef __IO_PORT_H
 #define __IO_PORT_H
 
+#include <minix/drivers.h>
+#include <minix/netdriver.h>
+#include <minix/type.h>
+#include <minix/sysutil.h>
+
+#include <sys/types.h>
+#include "kernel/type.h"
+
 extern unsigned my_inb(u16_t port);
 extern unsigned my_inw(u16_t port);
 extern unsigned my_inl(u16_t port);
