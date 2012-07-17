@@ -6,11 +6,11 @@
 #include <minix/type.h>
 #include <minix/sysutil.h>
 
+#include "kernel/config.h"
 #include <sys/types.h>
 #include <kernel/type.h>
 #include <sys/ioc_memory.h>
 #include "kernel/const.h"
-#include "kernel/config.h"
 #include "kernel/type.h"
 
 extern unsigned my_inb(u16_t port);
