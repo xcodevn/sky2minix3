@@ -39,6 +39,10 @@
 #include "kernel/type.h"
 /* End of COPY from rtl8139.h */
 
+/* Wrapper FreeBSD header file */
+#include "_bus_dma.h"
+/* End of wrapper */
+
 /* Include all definitions from if_mskreg.h (FreeBSD) */
 #include "if_mskreg.h"
 #include "io_port.h"
