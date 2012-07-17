@@ -8,6 +8,10 @@
 
 #include <sys/types.h>
 #include <kernel/type.h>
+#include <sys/ioc_memory.h>
+#include "kernel/const.h"
+#include "kernel/config.h"
+#include "kernel/type.h"
 
 extern unsigned my_inb(u16_t port);
 extern unsigned my_inw(u16_t port);
