@@ -35,7 +35,7 @@ static void sky_getstat_s(message *mp);
 static void sef_local_startup();
 static int sef_cb_init_fresh(int type, sef_init_info_t *UNUSED(info));
 static void sef_cb_signal_handler(int signo);
-static void mess_reply(req, reply_mess);
+static void mess_reply(message *req, message *reply_mess);
 static int sky_probe(sky_t *s, int skip);
 
 
