@@ -42,6 +42,11 @@
 /* Wrapper FreeBSD header file */
 #include "_bus_dma.h"
 #include "i386_bus.h"
+
+struct device{
+	
+};
+struct device * device_t;
 /* End of wrapper */
 
 /* Include all definitions from if_mskreg.h (FreeBSD) */
