@@ -15,4 +15,4 @@ extern void my_outl(u16_t port, u32_t value);
 #define sky_outw(port, offset, value)	(my_outw((port) + (offset), (value)))
 #define sky_outl(port, offset, value)	(my_outl((port) + (offset), (value)))
 
-#end /* __IO_PORT_H */
+#endif /* __IO_PORT_H */
