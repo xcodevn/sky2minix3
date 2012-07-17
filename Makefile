@@ -14,7 +14,7 @@ DPADD	+= $(LIBNETDRIVER) $(LIBSYS) $(LIBTIMERS)
 LDADD	+= -lnetdriver -lsys -ltimers
 
 MAN	=
-BINDIR	?= /usr/bin
+BINDIR	?= /usr/sbin
 CPPFLAGS	+= -I$(NETBSDSRCDIR)
 
 .include <minix.service.mk>

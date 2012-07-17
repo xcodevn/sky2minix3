@@ -1,10 +1,10 @@
 /*
  * tinySky.h
- * 
+ *
  * Created: Jul-17-2012 by Thong T. Nguyen <xcodevn at gmail dot com>
- * 
+ *
  */
- 
+
 #ifndef __TINYSKY_H
 #define __TINYSKY_H
 
@@ -44,7 +44,7 @@
 #include "i386_bus.h"
 
 struct device{
-	/* TODO */
+    /* TODO */
 };
 typedef struct device * device_t;
 
@@ -57,6 +57,32 @@ struct callout { /*TODO */ };
 /* Include all definitions from if_mskreg.h (FreeBSD) */
 #include "if_mskreg.h"
 #include "io_port.h"
+
+#define SKY_DEBUG(level, args) \
+    if ((level) <= SKY_VERBOSE) \
+    { \
+        printf args; \
+    } \
+
+typedef struct sky
+{
+    char name[8];         /**< String containing the device name. */
+    int status;           /**< Describes the card's current state. */
+    int irq;              /**< Interrupt Request Vector. */
+    int irq_hook;                 /**< Interrupt Request Vector Hook. */
+    ether_addr_t address;     /**< Ethernet MAC address. */
+    char *rx_buffer;          /**< Receive buffer returned by malloc(). */
+    int rx_buffer_size;       /**< Size of the receive buffer. */
+
+    char *tx_buffer;          /**< Transmit buffer returned by malloc(). */
+    int tx_buffer_size;       /**< Size of the transmit buffer. */
+
+    int client;                   /**< Process ID being served by e1000. */
+    message rx_message;       /**< Read message received from client. */
+    message tx_message;       /**< Write message received from client. */
+    size_t rx_size;       /**< Size of one packet received. */
+}
+sky_t;
 
 /* TODO HERE */
 
