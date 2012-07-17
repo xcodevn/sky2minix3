@@ -46,7 +46,7 @@
 struct device{
 	
 };
-struct device * device_t;
+typedef struct device * device_t;
 /* End of wrapper */
 
 /* Include all definitions from if_mskreg.h (FreeBSD) */
