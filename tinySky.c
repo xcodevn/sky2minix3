@@ -33,6 +33,21 @@ static void sef_local_startup();
 static int sef_cb_init_fresh(int type, sef_init_info_t *UNUSED(info));
 static void sef_cb_signal_handler(int signo);
 
+
+void sef_cb_lu_state_dump(int state) {
+    /* TODO */
+}
+
+int sef_cb_lu_prepare(int state) {
+    /* TODO */
+    return OK;
+}
+
+int sef_cb_lu_state_isvalid(int state) {
+    /* TODO */
+    return OK;
+}
+
 static void sef_cb_signal_handler(int signo) {
     /* TODO */
     /* Only check for termination signal, ignore anything else. */
