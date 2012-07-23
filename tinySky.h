@@ -85,6 +85,30 @@ typedef struct sky
 }
 sky_t;
 
+
+/**
+ * @name Status Flags.
+ * @{
+ */
+
+/** Card has been detected on the PCI bus. */
+#define SKY_DETECTED (1 << 0)
+
+/** Card is enabled. */
+#define SKY_ENABLED  (1 << 1)
+
+/** Client has requested to receive packets. */
+#define SKY_READING  (1 << 2)
+
+/** Client has requested to write packets. */
+#define SKY_WRITING  (1 << 3)
+
+/** Received some packets on the card. */
+#define SKY_RECEIVED (1 << 4)
+
+/** Transmitted some packets on the card. */
+#define SKY_TRANSMIT (1 << 5)
+
 /* TODO HERE */
 
 #endif /* __TINYSKY_H */

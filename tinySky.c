@@ -1,7 +1,7 @@
 /*
  * tinySky.c
  *
- * This is a fast ethernet driver for Marwell yukon E88E8040 card on Minix3 OS
+ * This is a fast ethernet driver for Marwell Yukon E88E8040 card on Minix3 OS
  *
  * Created: Jul-17-2012 by Thong T. Nguyen <xcodevn at gmail dot com>
  *
@@ -10,8 +10,7 @@
  *
  */
 
-#define SKY_VERBOSE 0       /* many levels */
-
+#define SKY_VERBOSE 5       /* many levels */
 
 #include "tinySky.h"
 
@@ -114,7 +113,7 @@ static void sky_init_pci()
     /* Initialize the PCI bus. */
     pci_init();
 
-    /* Try to detect e1000's. */
+    /* Try to detect Marwell's. */
     s = &sky_state;
     strcpy(s->name, "SKY02#0");
     s->name[6] += sky_instance;
@@ -153,7 +152,7 @@ static int sky_probe(sky_t *s, int skip)
     /*
      * Successfully detected card on the PCI bus.
      */
-    // s->status |= E1000_DETECTED;
+    s->status |= SKY_DETECTED;
     // s->eeprom_read = eeprom_eerd;
 
     /*
@@ -207,53 +206,83 @@ static int sky_probe(sky_t *s, int skip)
     /* FIXME: enable DMA bus mastering if necessary. This is disabled by
      * default on VMware. Eventually, the PCI driver should deal with this.
      */
-    // cr = pci_attr_r16(devind, PCI_CR);
-    // if (!(cr & PCI_CR_MAST_EN))
-        // pci_attr_w16(devind, PCI_CR, cr | PCI_CR_MAST_EN);
+    cr = pci_attr_r16(devind, PCI_CR);
+    if (!(cr & PCI_CR_MAST_EN))
+        pci_attr_w16(devind, PCI_CR, cr | PCI_CR_MAST_EN);
 
-    /* Optionally map flash memory. */
-    // if (did != E1000_DEV_ID_82540EM &&
-    // did != E1000_DEV_ID_82545EM &&
-    // did != E1000_DEV_ID_82540EP &&
-    // pci_attr_r32(devind, PCI_BAR_2))
-    // {
-        // size_t flash_size;
-
-        /* 82566/82567/82562V series support mapping 4kB of flash memory */
-        // switch(did)
-        // {
-            // case E1000_DEV_ID_ICH10_D_BM_LM:
-            // case E1000_DEV_ID_ICH10_R_BM_LF:
-                // flash_size = 0x1000;
-                // break;
-            // default:
-                // flash_size = 0x10000;
-        // }
-
-        // if ((e->flash = vm_map_phys(SELF,
-                                    // (void *) pci_attr_r32(devind, PCI_BAR_2),
-                                    // flash_size)) == MAP_FAILED) {
-            // panic("e1000: couldn't map in flash.");
-        // }
-
-    // gfpreg = E1000_READ_FLASH_REG(e, ICH_FLASH_GFPREG);
-        /*
-         * sector_base_addr is a "sector"-aligned address (4096 bytes)
-         */
-        // sector_base_addr = gfpreg & FLASH_GFPREG_BASE_MASK;
-
-        /* flash_base_addr is byte-aligned */
-        // e->flash_base_addr = sector_base_addr << FLASH_SECTOR_ADDR_SHIFT;
-    // }
-    /*
-     * Output debug information.
-     */
-    // status[0] = e1000_reg_read(e, E1000_REG_STATUS);
-    // E1000_DEBUG(3, ("%s: MEM at %p, IRQ %d\n",
-            // e->name, e->regs, e->irq));
+   // status[0] = e1000_reg_read(e, E1000_REG_STATUS);
+    SKY_DEBUG(3, ("%s: MEM at %p, IRQ %d\n",
+            e->name, e->regs, e->irq));
     // E1000_DEBUG(3, ("%s: link %s, %s duplex\n",
             // e->name, status[0] & 3 ? "up"   : "down",
                  // status[0] & 1 ? "full" : "half"));
+    return TRUE;
+}
+
+
+void sky_reset_hw(sky_t *s) {
+    /* TODO */
+}
+
+static int sky_init_hw(s)
+sky_t *s;
+{
+    int r, i;
+
+    s->status  |= SKY_ENABLED;
+    s->irq_hook = e->irq;
+
+    /*
+     * Set the interrupt handler and policy. Do not automatically
+     * re-enable interrupts. Return the IRQ line number on interrupts.
+     */
+    if ((r = sys_irqsetpolicy(s->irq, 0, &s->irq_hook)) != OK)
+    {
+        panic("sys_irqsetpolicy failed: %d", r);
+    }
+    if ((r = sys_irqenable(&s->irq_hook)) != OK)
+    {
+    panic("sys_irqenable failed: %d", r);
+    }
+    /* Reset hardware. */
+    sky_reset_hw(s);
+
+    /*
+     * Initialize appropriately, according to section 14.3 General Configuration
+     * of Intel's Gigabit Ethernet Controllers Software Developer's Manual.
+     */
+    e1000_reg_set(e,   E1000_REG_CTRL, E1000_REG_CTRL_ASDE | E1000_REG_CTRL_SLU);
+    e1000_reg_unset(e, E1000_REG_CTRL, E1000_REG_CTRL_LRST);
+    e1000_reg_unset(e, E1000_REG_CTRL, E1000_REG_CTRL_PHY_RST);
+    e1000_reg_unset(e, E1000_REG_CTRL, E1000_REG_CTRL_ILOS);
+    e1000_reg_write(e, E1000_REG_FCAL, 0);
+    e1000_reg_write(e, E1000_REG_FCAH, 0);
+    e1000_reg_write(e, E1000_REG_FCT,  0);
+    e1000_reg_write(e, E1000_REG_FCTTV, 0);
+    e1000_reg_unset(e, E1000_REG_CTRL, E1000_REG_CTRL_VME);
+
+    /* Clear Multicast Table Array (MTA). */
+    for (i = 0; i < 128; i++)
+    {
+    e1000_reg_write(e, E1000_REG_MTA + i, 0);
+    }
+    /* Initialize statistics registers. */
+    for (i = 0; i < 64; i++)
+    {
+    e1000_reg_write(e, E1000_REG_CRCERRS + (i * 4), 0);
+    }
+    /*
+     * Aquire MAC address and setup RX/TX buffers.
+     */
+    e1000_init_addr(e);
+    e1000_init_buf(e);
+
+    /* Enable interrupts. */
+    e1000_reg_set(e,   E1000_REG_IMS, E1000_REG_IMS_LSC  |
+                      E1000_REG_IMS_RXO  |
+                      E1000_REG_IMS_RXT  |
+                      E1000_REG_IMS_TXQE |
+                      E1000_REG_IMS_TXDW);
     return TRUE;
 }
 
@@ -265,7 +294,7 @@ static void sky_init(message *mp)
     message reply_mess;
     sky_t *s;
 
-    printf("Sky init\n");
+    SKY_DEBUG(3, ("sky: init()\n"));
 
     /* Configure PCI devices, if needed. */
     if (first_time)
@@ -276,13 +305,13 @@ static void sky_init(message *mp)
     s = &sky_state;
 
     /* Initialize hardware, if needed. */
-    // if (!(s->status & E1000_ENABLED) && !(e1000_init_hw(e)))
-    // {
-        // reply_mess.m_type  = DL_CONF_REPLY;
-        // reply_mess.DL_STAT = ENXIO;
-        // mess_reply(mp, &reply_mess);
-        // return;
-    // }
+    if (!(s->status & SKY_ENABLED) && !(sky_init_hw(s)))
+    {
+        reply_mess.m_type  = DL_CONF_REPLY;
+        reply_mess.DL_STAT = ENXIO;
+        mess_reply(mp, &reply_mess);
+        return;
+    }
 
     /* Reply back to INET. */
     reply_mess.m_type  = DL_CONF_REPLY;
