@@ -108,7 +108,7 @@ static void sky_getstat_s(message *mp) {
 
     SKY_DEBUG(3, ("sky: getstat_s()\n"));
 
-    stats.ets_recvErr   = 0 // TODO: e1000_reg_read(e, E1000_REG_RXERRC);
+    stats.ets_recvErr   = 0; // TODO: e1000_reg_read(e, E1000_REG_RXERRC);
     stats.ets_sendErr   = 0;
     stats.ets_OVW       = 0;
     stats.ets_CRCerr    = 0; // TODO: e1000_reg_read(e, E1000_REG_CRCERRS);
@@ -132,7 +132,7 @@ static void sky_getstat_s(message *mp) {
 }
 
 
-static void sky_init_pci()
+static int sky_init_pci()
 {
     sky_t *s;
 
@@ -143,7 +143,7 @@ static void sky_init_pci()
     s = &sky_state;
     strcpy(s->name, "SKY02#0");
     s->name[6] += sky_instance;
-    sky_probe(s, sky_instance);
+    return sky_probe(s, sky_instance);
 }
 
 static int sky_probe(sky_t *s, int skip)
@@ -155,14 +155,14 @@ static int sky_probe(sky_t *s, int skip)
     u32_t gfpreg, sector_base_addr;
     char *dname;
 
-    SKY_DEBUG(3, ("%s: hello world probe()\n", s->name));
+    SKY_DEBUG(3, ("%s: probe()\n", s->name));
 
     /*
      * Attempt to iterate the PCI bus. Start at the beginning.
      */
     if ((r = pci_first_dev(&devind, &vid, &did)) == 0)
     {
-		panic("We don't have Mavell cards");
+		// panic("We don't have Mavell cards");
 		return FALSE;
     }
     /* Loop devices on the PCI bus. */
@@ -173,7 +173,7 @@ static int sky_probe(sky_t *s, int skip)
 
     if (!(r = pci_next_dev(&devind, &vid, &did)))
     {
-		panic("We don't have Mavell cards");
+		//panic("We don't have Mavell cards");
         return FALSE;
     }
     }
@@ -281,24 +281,38 @@ static void sky_init(message *mp)
     if (first_time)
     {
         first_time = 0;
-        sky_init_pci();
+        if (!sky_init_pci()) goto ok;
     }
     s = &sky_state;
+    goto ok;
 
     /* Initialize hardware, if needed. */
     if (!(s->status & SKY_ENABLED) && !(sky_init_hw(s)))
     {
-        reply_mess.m_type  = DL_CONF_REPLY;
-        reply_mess.DL_STAT = ENXIO;
-        mess_reply(mp, &reply_mess);
-        return;
+        goto ok;
     }
 
     /* Reply back to INET. */
+ok:
     reply_mess.m_type  = DL_CONF_REPLY;
     reply_mess.DL_STAT = OK;
+
+    s->address.ea_addr[0]=0x01;
+    s->address.ea_addr[1]=0x02;
+    s->address.ea_addr[2]=0x03;
+    s->address.ea_addr[3]=0x04;
+    s->address.ea_addr[4]=0x05;
+    s->address.ea_addr[5]=0x06;
     *(ether_addr_t *) reply_mess.DL_HWADDR = s->address;
     mess_reply(mp, &reply_mess);
+    printf("Returned\n");
+    return;
+
+error:
+    reply_mess.m_type  = DL_CONF_REPLY;
+    reply_mess.DL_STAT = ENXIO;
+    mess_reply(mp, &reply_mess);
+    return;
 }
 
 
@@ -311,7 +325,33 @@ message *reply_mess;
 }
 
 static void sky_readv_s(const message *mp, int from_int) {
+	message reply;
+	int flags;
+	int r;
+
+
+	flags = DL_NOFLAGS;
+	//~ if (rep->re_flags & REF_PACK_SENT)
+		//~ flags |= DL_PACK_SEND;
+	//~ if (rep->re_flags & REF_PACK_RECV)
+		//~ flags |= DL_PACK_RECV;
+
+	reply.m_type = DL_TASK_REPLY;
+	reply.DL_FLAGS = flags;
+	reply.DL_COUNT = mp->DL_COUNT;// FIXME: rep->re_read_s;
+
+	r= send(mp->m_source, &reply);
+
+	//~ if (r < 0) {
+		//~ printf("RTL8139 tried sending to %d, type %d\n",
+			//~ rep->re_client, reply.m_type);
+		//~ panic("send failed: %d", r);
+	//~ }
+	//~ 
+	//~ rep->re_read_s = 0;
+	//~ rep->re_flags &= ~(REF_PACK_SENT | REF_PACK_RECV);
     /* TODO */
+    
 }
 static void sky_writev_s(const message *mp, int from_int) {
     /* TODO */
@@ -386,13 +426,14 @@ int main(int argc, char ** argv) {
             /* done, get nwe message */
             continue;
         }
-
+		printf("New message\n");
+		printf("Message type: %d\nDL_WRITEV_S %d\nDL_READV_S %d\nDL_CONF %d\nDL_GETSTAT_S %d\n", m.m_type, DL_WRITEV_S, DL_READV_S, DL_CONF, DL_GETSTAT_S);
         switch (m.m_type)
         {
         case DL_WRITEV_S: sky_writev_s(&m, FALSE);   break;
         case DL_READV_S: sky_readv_s(&m, FALSE);     break;
-        case DL_CONF:   sky_init(&m);            break;
-        case DL_GETSTAT_S: sky_getstat_s(&m);        break;
+        case DL_CONF:   sky_init(&m);                break;
+        case DL_GETSTAT_S: printf("Get STAT\n"); sky_getstat_s(&m);        break;
         default:
             panic("illegal message: %d", m.m_type);
         }
