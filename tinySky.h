@@ -71,6 +71,9 @@ typedef struct sky
     int irq;              /**< Interrupt Request Vector. */
     int irq_hook;                 /**< Interrupt Request Vector Hook. */
     u8_t *regs;           /**< Memory mapped hardware registers. */
+   	
+   	// eth_stat_t stat;         /**<Ethernet status. */
+
     ether_addr_t address;     /**< Ethernet MAC address. */
     char *rx_buffer;          /**< Receive buffer returned by malloc(). */
     int rx_buffer_size;       /**< Size of the receive buffer. */

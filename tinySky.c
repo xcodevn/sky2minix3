@@ -102,7 +102,33 @@ static void sef_local_startup()
 
 
 static void sky_getstat_s(message *mp) {
-    /* TODO */
+    int r;
+    eth_stat_t stats;
+    // e1000_t *e = &e1000_state;
+
+    SKY_DEBUG(3, ("sky: getstat_s()\n"));
+
+    stats.ets_recvErr   = 0 // TODO: e1000_reg_read(e, E1000_REG_RXERRC);
+    stats.ets_sendErr   = 0;
+    stats.ets_OVW       = 0;
+    stats.ets_CRCerr    = 0; // TODO: e1000_reg_read(e, E1000_REG_CRCERRS);
+    stats.ets_frameAll  = 0;
+    stats.ets_missedP   = 0; // TODO: e1000_reg_read(e, E1000_REG_MPC);
+    stats.ets_packetR   = 0; // TODO: e1000_reg_read(e, E1000_REG_TPR);
+    stats.ets_packetT   = 0; // TODO: e1000_reg_read(e, E1000_REG_TPT);
+    stats.ets_collision = 0; // TOOD: e1000_reg_read(e, E1000_REG_COLC);
+    stats.ets_transAb   = 0;
+    stats.ets_carrSense = 0;
+    stats.ets_fifoUnder = 0;
+    stats.ets_fifoOver  = 0;
+    stats.ets_CDheartbeat = 0;
+    stats.ets_OWC = 0;
+
+    sys_safecopyto(mp->m_source, mp->DL_GRANT, 0, (vir_bytes)&stats,
+                   sizeof(stats));
+    mp->m_type  = DL_STAT_REPLY;
+    if((r=send(mp->m_source, mp)) != OK)
+	panic("sky_getstat: send() failed: %d", r);
 }
 
 
@@ -129,14 +155,15 @@ static int sky_probe(sky_t *s, int skip)
     u32_t gfpreg, sector_base_addr;
     char *dname;
 
-    SKY_DEBUG(3, ("%s: probe()\n", s->name));
+    SKY_DEBUG(3, ("%s: hello world probe()\n", s->name));
 
     /*
      * Attempt to iterate the PCI bus. Start at the beginning.
      */
     if ((r = pci_first_dev(&devind, &vid, &did)) == 0)
     {
-    return FALSE;
+		panic("We don't have Mavell cards");
+		return FALSE;
     }
     /* Loop devices on the PCI bus. */
     while (skip--)
@@ -146,6 +173,7 @@ static int sky_probe(sky_t *s, int skip)
 
     if (!(r = pci_next_dev(&devind, &vid, &did)))
     {
+		panic("We don't have Mavell cards");
         return FALSE;
     }
     }
@@ -153,29 +181,6 @@ static int sky_probe(sky_t *s, int skip)
      * Successfully detected card on the PCI bus.
      */
     s->status |= SKY_DETECTED;
-    // s->eeprom_read = eeprom_eerd;
-
-    /*
-     * Set card specific properties.
-     */
-    // switch (did)
-    // {
-        // case E1000_DEV_ID_ICH10_D_BM_LM:
-        // case E1000_DEV_ID_ICH10_R_BM_LF:
-            // e->eeprom_read = eeprom_ich;
-            // break;
-//
-        // case E1000_DEV_ID_82540EM:
-    // case E1000_DEV_ID_82545EM:
-        // e->eeprom_done_bit = (1 << 4);
-        // e->eeprom_addr_off =  8;
-        // break;
-//
-    // default:
-        // e->eeprom_done_bit = (1 << 1);
-        // e->eeprom_addr_off =  2;
-        // break;
-    // }
 
     /* Inform the user about the new card. */
     if (!(dname = pci_dev_name(vid, did)))
@@ -212,7 +217,7 @@ static int sky_probe(sky_t *s, int skip)
 
    // status[0] = e1000_reg_read(e, E1000_REG_STATUS);
     SKY_DEBUG(3, ("%s: MEM at %p, IRQ %d\n",
-            e->name, e->regs, e->irq));
+            s->name, s->regs, s->irq));
     // E1000_DEBUG(3, ("%s: link %s, %s duplex\n",
             // e->name, status[0] & 3 ? "up"   : "down",
                  // status[0] & 1 ? "full" : "half"));
@@ -230,7 +235,7 @@ sky_t *s;
     int r, i;
 
     s->status  |= SKY_ENABLED;
-    s->irq_hook = e->irq;
+    s->irq_hook = s->irq;
 
     /*
      * Set the interrupt handler and policy. Do not automatically
@@ -248,41 +253,17 @@ sky_t *s;
     sky_reset_hw(s);
 
     /*
-     * Initialize appropriately, according to section 14.3 General Configuration
-     * of Intel's Gigabit Ethernet Controllers Software Developer's Manual.
-     */
-    e1000_reg_set(e,   E1000_REG_CTRL, E1000_REG_CTRL_ASDE | E1000_REG_CTRL_SLU);
-    e1000_reg_unset(e, E1000_REG_CTRL, E1000_REG_CTRL_LRST);
-    e1000_reg_unset(e, E1000_REG_CTRL, E1000_REG_CTRL_PHY_RST);
-    e1000_reg_unset(e, E1000_REG_CTRL, E1000_REG_CTRL_ILOS);
-    e1000_reg_write(e, E1000_REG_FCAL, 0);
-    e1000_reg_write(e, E1000_REG_FCAH, 0);
-    e1000_reg_write(e, E1000_REG_FCT,  0);
-    e1000_reg_write(e, E1000_REG_FCTTV, 0);
-    e1000_reg_unset(e, E1000_REG_CTRL, E1000_REG_CTRL_VME);
-
-    /* Clear Multicast Table Array (MTA). */
-    for (i = 0; i < 128; i++)
-    {
-    e1000_reg_write(e, E1000_REG_MTA + i, 0);
-    }
-    /* Initialize statistics registers. */
-    for (i = 0; i < 64; i++)
-    {
-    e1000_reg_write(e, E1000_REG_CRCERRS + (i * 4), 0);
-    }
-    /*
      * Aquire MAC address and setup RX/TX buffers.
      */
-    e1000_init_addr(e);
-    e1000_init_buf(e);
+    //e1000_init_addr(e);
+    //e1000_init_buf(e);
 
     /* Enable interrupts. */
-    e1000_reg_set(e,   E1000_REG_IMS, E1000_REG_IMS_LSC  |
-                      E1000_REG_IMS_RXO  |
-                      E1000_REG_IMS_RXT  |
-                      E1000_REG_IMS_TXQE |
-                      E1000_REG_IMS_TXDW);
+    // e1000_reg_set(e,   E1000_REG_IMS, E1000_REG_IMS_LSC  |
+                      // E1000_REG_IMS_RXO  |
+                      // E1000_REG_IMS_RXT  |
+                      // E1000_REG_IMS_TXQE |
+                      // E1000_REG_IMS_TXDW);
     return TRUE;
 }
 
